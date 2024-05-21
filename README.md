@@ -1,0 +1,1 @@
+Buat File phone.txt lalu masukan nomer kalean disitu ye
