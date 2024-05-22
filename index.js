@@ -23,7 +23,7 @@ const proxyDomain = [
     "waw.socks.ipvanish.com",
     "lis.socks.ipvanish.com",
     "sin.socks.ipvanish.com",
-    "mad.socks.ipvanish.com",
+    "sea.socks.ipvanish.com",
     "sto.socks.ipvanish.com",
     "iad.socks.ipvanish.com",
     "atl.socks.ipvanish.com",
@@ -84,7 +84,6 @@ async function getAccessToken(authData, retryCount = 3, proxy) {
         }
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
     }
 }
 
@@ -112,7 +111,7 @@ async function getAccountInfo(accessToken, proxy) {
 
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -145,7 +144,7 @@ async function getAccountBuildInfo(accessToken, proxy) {
 
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -185,12 +184,12 @@ async function collectCoin(accessToken, clickLevel, proxy) {
             }
         } catch (error) {
             console.error('Error:', error.message);
-            throw error;
+
         }
     } while (collectCoin)
 }
 
-async function claimSpecialBox(accessToken, proxy) {
+async function claimSpecialBox(accessToken, clickLevel, proxy) {
     console.log("[CLAIM SPECIAL BOX]")
 
     try {
@@ -207,13 +206,13 @@ async function claimSpecialBox(accessToken, proxy) {
         const responseJson = await response.json();
 
         if (responseJson.message === 'Success') {
-            console.log("claimSpecialBox:", responseJson.message)
+            await getSpecialBox(accessToken, clickLevel, proxy)
         } else {
             console.log("claimSpecialBox:", responseJson.message)
         }
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -239,7 +238,7 @@ async function getSpecialBox(accessToken, clickLevel, proxy) {
 
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -266,7 +265,7 @@ async function specialBoxReloadPage(accessToken, clickLevel, proxy) {
 
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -296,7 +295,7 @@ async function collectSpecialBoxCoin(accessToken, clickLevel, proxy) {
         }
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -324,7 +323,7 @@ async function claimRefillCoin(accessToken, clickLevel, proxy) {
         }
     } catch (error) {
         console.error('Error:', error.message);
-        throw error;
+
     }
 }
 
@@ -346,7 +345,7 @@ async function claimRefillCoin(accessToken, clickLevel, proxy) {
         await register(TelegramClient, sessions, apiId, apiHash, number, input)
     }
     // End Login Telegram
-    
+
     console.log("Clearing Screen ......");
     await sleep(3000)
 
@@ -357,9 +356,9 @@ async function claimRefillCoin(accessToken, clickLevel, proxy) {
         let index = 0;
         for (const number of phone) {
             console.log(`\n<=====================[${number}]=====================>`);
-            const proxyUrl = `socks5://username:pass@${proxyDomain[index]}:1080`;
+            const proxyUrl = `socks5://username:password@${proxyDomain[index]}:1080`;
             const proxy = new SocksProxyAgent(proxyUrl)
-            
+
             const sessions = new StoreSession(`${sessionPath}${number}`);
             const client = new TelegramClient(sessions, apiId, apiHash, {
                 connectionRetries: 5,
@@ -395,19 +394,24 @@ async function claimRefillCoin(accessToken, clickLevel, proxy) {
 
             await getAccountInfo(accessToken, proxy)
 
-            const [clickLevel, specialBoxBalance, refillCoinBalance] = await getAccountBuildInfo(accessToken, proxy)
+            const buildInfo = await getAccountBuildInfo(accessToken, proxy)
 
-            await collectCoin(accessToken, clickLevel, proxy)
+            if (Array.isArray(buildInfo)) {
+                const [clickLevel, specialBoxBalance, refillCoinBalance] = buildInfo;
 
-            await getSpecialBox(accessToken, clickLevel, proxy)
-            
-
-            for (let i = 0; i < specialBoxBalance; i++) {
-                await claimSpecialBox(accessToken, proxy)
-            }
-
-            for (let i = 0; i < refillCoinBalance; i++) {
-                await claimRefillCoin(accessToken, clickLevel, proxy)
+                await collectCoin(accessToken, clickLevel, proxy)
+    
+                await getSpecialBox(accessToken, clickLevel, proxy)
+    
+                for (let i = 0; i < specialBoxBalance; i++) {
+                    claimSpecialBox(accessToken, clickLevel, proxy)
+                }
+    
+                for (let i = 0; i < refillCoinBalance; i++) {
+                    await claimRefillCoin(accessToken, clickLevel, proxy)
+                }
+            } else {
+                console.log("buildInfo:", buildInfo)
             }
 
             index++
